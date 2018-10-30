@@ -1,0 +1,87 @@
+module functionCombi (
+    input a[16],
+    input b[16],
+    input alufn[5],
+    output out[16]
+  ) {
+  //Initiates all the ALU Functions  
+  adder16 adder;
+  boole16 bool;
+  compare16 cmp;
+  shift16 shift;
+  multiply16 mul;
+  
+  always {
+    out = 0;
+    
+    
+    //Connects initiated ALU functions to current module's a, b, and alufn inputs
+    adder.a = a;
+    adder.b = b;
+    adder.alufn = alufn;
+    
+    bool.a = a;
+    bool.b = b;
+    bool.alufn = alufn;
+    
+    cmp.a = a;
+    cmp.b = b;
+    cmp.alufn = alufn;
+    
+    shift.a = a;
+    shift.b = b;
+    shift.alufn = alufn;
+    
+    mul.a = a;
+    mul.b = b;
+    mul.alufn = alufn;
+    
+    
+    case (alufn){
+    
+    //Connects this modules' output to initiated ALU function's output 
+      
+    //Adder
+      Func.ADD:
+        out = adder.out;
+      Func.SUB:
+        out = adder.out;
+        
+    //Boolean
+      Func.AND:
+        out = bool.out;      
+      Func.NAND:
+        out = bool.out;      
+      Func.OR:
+        out = bool.out;      
+      Func.NOR:
+        out = bool.out;      
+      Func.XOR:
+        out = bool.out;        
+      Func.LDR:
+        out = bool.out;
+        
+    //Shift
+      Func.SHL:
+        out = shift.out;
+      Func.SHR:
+        out = shift.out;
+      Func.SRA:
+        out = shift.out;
+        
+        
+    //Compare
+      Func.CMPEQ:
+        out = cmp.out;
+      Func.CMPLT:
+        out = cmp.out;
+      Func.CMPLE:
+        out = cmp.out;
+      
+    //Multiply
+      Func.MUL:
+        out = mul.out;
+        
+      } 
+  }
+}

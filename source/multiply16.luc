@@ -1,0 +1,16 @@
+module multiply16 (
+    input a[16],
+    input b[16],
+    input alufn[5],  
+    output out[16]
+  ) {
+
+  always {
+    out = 0;
+    
+    case(alufn){
+      Func.MUL:
+        out = a*b;    //Multiplies a and b
+    }  
+  }
+}

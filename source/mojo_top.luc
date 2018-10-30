@@ -1,0 +1,357 @@
+//<====Global Variables====>
+//1) all functions are listed here with the corresponding 5bit value. 
+//2) The most significant bit is used to indicated whether ALUFN signals are "ON" or "OFF"
+global Func{
+  const ADD   = 5b10000;      // a + b
+  const SUB   = 5b10001;      // a - b
+  const AND   = 5b10010;      // Returns AND Logic
+  const NAND  = 5b10011;      // Returns NAND Logic
+  const OR    = 5b10100;      // Returns OR Logic
+  const NOR   = 5b10101;      // Returns NOR logic
+  const XOR   = 5b10110;      // Returns XOR logic 
+  const LDR   = 5b10111;      // loads a
+  const SHL   = 5b11000;      // a shifts left by b 
+  const SHR   = 5b11001;      // a shifts right by b
+  const SRA   = 5b11010;      // a shifts right arithmetically by b
+  const CMPEQ = 5b11011;      // a == b
+  const CMPLT = 5b11100;      // a <  b
+  const CMPLE = 5b11101;      // a <= b
+  const MUL   = 5b11111;      // a *  b
+  
+}
+
+
+
+module mojo_top (
+    input clk,              // 50MHz clock
+    input rst_n,            // reset button (active low)
+    output led [8],         // 8 user controllable LEDs
+    input cclk,             // configuration clock, AVR ready when high
+    output spi_miso,        // AVR SPI MISO
+    input spi_ss,           // AVR SPI Slave Select
+    input spi_mosi,         // AVR SPI MOSI
+    input spi_sck,          // AVR SPI Clock
+    output spi_channel [4], // AVR general purpose pins (used by default to select ADC channel)
+    input avr_tx,           // AVR TX (FPGA RX)
+    output avr_rx,          // AVR RX (FPGA TX)
+    input avr_rx_busy,      // AVR RX buffer full
+    output io_led [3][8],   // LEDs on IO Shield
+    output io_seg [8],      // 7-segment LEDs on IO Shield
+    output io_sel [4],      // Digit select on IO Shield
+    input io_button [5],    // 5 buttons on IO Shield
+    input io_dip [3][8]     // DIP switches on IO Shield
+  ) {
+  
+  sig rst;                  // reset signal
+  sig value[16];            // current value of a or b
+  var on;
+  var off;
+  
+  
+  functionCombi combine;    //Instantiates the combined functions module
+  
+  fsm auto (.clk(clk), .rst(rst)) = {IDLE, END, FAIL,    //FSM for auto checking
+    ARITHMETIC, ADD, SUB, MUL,
+    COMPARE, CEQ, CLT, CLE,
+    BOOLEAN, AND, NAND, OR, NOR, XOR,LDR,
+    SHIFT, SHL, SHR, SRA};
+  
+/*  Test cases documentation:
+    Checks whether values has been changed since it was input. 
+    
+     1) io_button[0] scrambles stored value
+     2) ARITHMETIC, COMPARE, BOOLEAN, has the checks for failure
+     3) SHIFTING will have to read the io_led outputs
+     4) Runs through all ALU funcions fo the particular category in the above order once io_button is pressed. 
+     5) Enters fail state is any function fails. Enters END State if all funcions passes.
+  
+  */
+  dff a[16](.clk(clk), .rst(rst));        //Stores a value
+  dff b[16](.clk(clk), .rst(rst));        //Stores b value
+  dff erra[16](.clk(clk), .rst(rst));     //Stores a value before scrambling for checking
+  dff errb[16](.clk(clk), .rst(rst));     //Stores a value before scrambling for checking
+  
+  dff count[28](.clk(clk), .rst(rst));    //Timer
+  
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+  }
+  
+  always {
+    reset_cond.in = ~rst_n; // input raw inverted reset signal
+    rst = reset_cond.out;   // conditioned reset
+    
+    led = 8h00;             // turn LEDs off
+    spi_miso = bz;          // not using SPI
+    spi_channel = bzzzz;    // not using flags
+    avr_rx = bz;            // not using serial port
+    
+    io_led = 3x{{8h00}};    // turn LEDs off
+    io_seg = 8hff;          // turn segments off
+    io_sel = 4hf;           // select no digits
+    
+    
+    
+    value[7:0] = io_dip[0];  //sets value by io_dip switches
+    value[15:8] = io_dip[1];
+    
+    on = 8hff;              //to switch on all leds at once
+    off = 8h00;             //to switch off all leds at once
+    
+    //<=========Manual============>
+    
+    combine.a = a.q;        //connects combine a to stored a value
+    combine.b = b.q;        //connects combine b to stored b value
+    combine.alufn = io_dip[2][4:0];  //connects combine alufn to io_dip switches
+    
+    
+    io_led[0] = combine.out[7:0];    //displays output from combine on io_led
+    io_led[1] = combine.out[15:8];
+    io_led[2][4:0] = io_dip[2][4:0]; //displays Manual alufn selection
+    io_led[2][7:6] = io_dip[2][7:6]; //A or B storage indication
+    
+    //Storing A value
+    if (io_dip[2][7] == 1 & io_dip[2][6] == 0){ 
+      a.d = value;
+      erra.d = a.q;
+      io_led[0] = a.q[7:0];
+      io_led[1] = a.q[15:8];
+    }
+    //Storing B Value
+    else if (io_dip[2][6] == 1 & io_dip[2][7] == 0){
+      b.d = value;
+      errb.d = b.q;
+      io_led[0] = b.q[7:0];
+      io_led[1] = b.q[15:8];
+    }
+    
+    count.d = count.q + 1;          //keeps timer counting
+    
+    //<=======================>
+    //<=========Auto==========>
+    //<=======================>
+    case(auto.q){
+      auto.IDLE:
+        led = on;
+      
+      auto.END:                    //indicates checks are successful corner two leds on both sides are lighted
+        led = c{1,1,0,0,0,0,1,1};
+      
+      auto.FAIL:                   //indicates checks failed. Blinking row of LED on mojo
+        
+        if(count.q[26] == 1){
+          led = on;
+          
+        }
+      
+        
+      //<========ARITHMETIC CHECKS===========>
+      auto.ARITHMETIC:
+        if (count.q[26] == 1){
+          count.d = 0;
+          auto.d = auto.ADD;}
+
+      auto.ADD:
+        combine.alufn = Func.ADD;
+        if (count.q[26] ==1){
+          count.d = 0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else next check
+          if((erra.q + errb.q) != (a.q + b.q)){ 
+            auto.d = auto.FAIL;}
+          else{
+            auto.d = auto.SUB;}
+        }
+      
+      auto.SUB:
+        combine.alufn = Func.SUB;
+        if (count.q[26] == 1){
+          count.d =0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else next check
+          if((erra.q - errb.q) != (a.q -b.q)){
+            auto.d = auto.FAIL;
+          }else{
+            auto.d = auto.MUL;}
+        }
+      auto.MUL:
+        combine.alufn = Func.MUL;
+        if (count.q[26] == 1){
+          count.d =0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else end
+          if((erra.q * errb.q) != (a.q * b.q)){
+            auto.d = auto.FAIL;
+          }else{
+            auto.d = auto.END;
+          }
+        }
+      
+      
+      
+      //<========COMPARISONS===========>
+      auto.COMPARE:
+        
+        if (count.q[26] == 1){
+          count.d = 0;
+          auto.d = auto.CEQ;}
+      auto.CEQ:
+        combine.alufn = Func.CMPEQ;
+        if(count.q[26] == 1){
+          count.d = 0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else next check
+          if((erra.q == errb.q) != (a.q == b.q)){
+            auto.d = auto.FAIL;
+          }else{
+            auto.d = auto.CLT;
+          }
+        }
+      
+      auto.CLT:
+        combine.alufn = Func.CMPLT;
+        if(count.q[26] == 1){
+          count.d = 0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else next check
+          if((erra.q < errb.q) != (a.q < b.q)){
+            auto.d = auto.FAIL;
+          }else{
+            auto.d = auto.CLE;}
+        }
+      auto.CLE:
+        combine.alufn = Func.CMPLE;
+        if(count.q[26] == 1){
+          count.d = 0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else end
+          if((erra.q <= errb.q) != (a.q == b.q)){
+            auto.d = auto.FAIL;
+          }else{
+            auto.d = auto.END;}
+        }
+      
+      
+      
+      //<========BOOLEAN LOGIC CHECKS===========>
+      auto.BOOLEAN:
+        if(count.q[26] == 1){
+          count.d = 0;
+          auto.d = auto.AND;
+        }
+      auto.AND:
+        combine.alufn = Func.AND;
+        if (count.q[26] == 1){
+          count.d = 0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else next check
+          if((erra.q & errb.q) != (a.q & b.q)){
+            auto.d = auto.FAIL;
+          }else{
+            auto.d = auto.NAND;}
+        }
+      auto.NAND:
+        combine.alufn = Func.NAND;
+        if (count.q[26] == 1){
+          count.d = 0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else next check
+          if(~(erra.q & errb.q) != ~(a.q & b.q)){
+            auto.d = auto.FAIL;
+          }else{
+            auto.d = auto.OR;}
+        }
+      auto.OR:
+        combine.alufn = Func.OR;
+        if(count.q[26] == 1){
+          count.d = 0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else next check
+          if((erra.q | errb.q) != (a.q | b.q)){
+            auto.d = auto.FAIL;
+          }else{
+            auto.d = auto.NOR;}
+        }
+      auto.NOR:
+        combine.alufn = Func.NOR;
+        if(count.q[26] == 1){
+          count.d = 0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else next check
+          if(~(erra.q | errb.q) != ~(a.q | b.q)){
+            auto.d = auto.FAIL;
+          }else{
+            auto.d = auto.XOR;}
+        }
+      auto.XOR:
+        combine.alufn = Func.XOR;
+        if(count.q[26] == 1){
+          count.d = 0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else next check
+          if((erra.q ^ errb.q) != (a.q ^ b.q)){
+            auto.d = auto.FAIL;
+            }else{
+          auto.d = auto.LDR;}
+        }
+      auto.LDR:
+        combine.alufn = Func.LDR;
+        if(count.q[26] == 1){
+          count.d = 0;
+          //checks if A and B values have been rewired. Proceeds to fail state if yes, else end
+          if(erra.q != a.q){
+            auto.d = auto.FAIL;
+            }else{
+          auto.d = auto.END;}
+        }
+      
+      
+      //<========SHIFTING===========>
+      auto.SHIFT:
+        if(count.q[26] == 1){
+          count.d = 0;
+          auto.d = auto.SHL;
+        }
+      auto.SHL:
+        combine.alufn = Func.SHL;
+        if(count.q[26] == 1){
+          count.d = 0;
+          
+          auto.d = auto.SHR;
+        }
+      auto.SHR:
+        combine.alufn = Func.SHR;
+        if(count.q[26] == 1){
+          count.d = 0;
+          auto.d = auto.SRA;
+        }
+      auto.SRA:
+        combine.alufn = Func.SRA;
+        if(count.q[26] == 1){
+          count.d = 0;
+          auto.d = auto.END;
+        }
+      
+    }
+    
+    //<=========BUTTONS TO ENTER WHICH AUTO CHECK================>
+    //up
+    if (io_button[0]){
+      count.d = 0;
+      auto.d = auto.ARITHMETIC;
+    }
+    //down
+    if(io_button[2]){
+      count.d = 0;
+      auto.d = auto.COMPARE;
+    }
+    //left
+    if(io_button[3]){
+      count.d = 0;
+      auto.d = auto.BOOLEAN;
+    }
+    //right
+    if(io_button[4]){
+      count.d = 0;
+      auto.d = auto.SHIFT;
+    }
+    
+    //centre
+    if(io_button[1]){ //scrambles stored a and b value
+      a.d = ~(a.q - b.q) ;
+      b.d = ~b.q - 1 ;
+    }
+    
+  }
+}

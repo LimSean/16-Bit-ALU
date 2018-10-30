@@ -1,0 +1,24 @@
+module shift16 (
+    input a[16],
+    input b[16],
+    input alufn[5],
+    output out[16]
+  ) {
+
+  always {
+    out = 0;
+    
+    case(alufn){
+      Func.SHL:
+        out = a << b[3:0];            //Shifts A left by a maximum of 15 bits
+        
+      Func.SHR:
+        out = a >> b[3:0];            //Shifts A right by a maximum of 15 bits
+        
+      Func.SRA:
+        out = $signed(a) >>> b[3:0];  //Shifts A right arithmetically by maximum of 15 bits
+      
+      
+      }
+  }
+}
