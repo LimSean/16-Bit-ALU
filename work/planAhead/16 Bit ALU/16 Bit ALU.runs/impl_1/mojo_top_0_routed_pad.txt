@@ -1,7 +1,7 @@
 Release 14.7 - par P.20131013 (nt)
 Copyright (c) 1995-2013 Xilinx, Inc.  All rights reserved.
 
-Wed Oct 31 05:05:31 2018
+Mon Nov 26 00:57:09 2018
 
 
 INFO: The IO information is provided in three file formats as part of the Place and Route (PAR) process.  These formats are:
@@ -157,7 +157,7 @@ Pinout by Pin Number:
 |P135      |            |         |VCCO_0                    |         |           |0             |          |         |           |         |3.30     |          |           |                |
 |P136      |            |         |GND                       |         |           |              |          |         |           |         |         |          |           |                |
 |P137      |io_button[0]|IOB      |IO_L4N_0                  |INPUT    |LVTTL      |0             |          |         |PULLDOWN   |NONE     |         |LOCATED   |NO         |NONE            |
-|P138      |io_button[4]|IOB      |IO_L4P_0                  |INPUT    |LVTTL      |0             |          |         |PULLDOWN   |NONE     |         |LOCATED   |NO         |NONE            |
+|P138      |io_button(4)|IOB      |IO_L4P_0                  |INPUT    |LVTTL      |0             |          |         |PULLDOWN   |NONE     |         |LOCATED   |NO         |NONE            |
 |P139      |io_button[2]|IOB      |IO_L3N_0                  |INPUT    |LVTTL      |0             |          |         |PULLDOWN   |NONE     |         |LOCATED   |NO         |NONE            |
 |P140      |io_button[1]|IOB      |IO_L3P_0                  |INPUT    |LVTTL      |0             |          |         |PULLDOWN   |NONE     |         |LOCATED   |NO         |NONE            |
 |P141      |io_seg[7]   |IOB      |IO_L2N_0                  |OUTPUT   |LVTTL      |0             |12        |SLOW     |           |         |         |LOCATED   |NO         |NONE            |

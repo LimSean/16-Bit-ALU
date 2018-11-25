@@ -93,6 +93,9 @@ module functionCombi_1 (
       5'h11: begin
         out = M_adder_out;
       end
+      5'h00: begin
+        out = M_adder_out;
+      end
       5'h12: begin
         out = M_bool_out;
       end

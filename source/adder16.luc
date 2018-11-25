@@ -4,18 +4,21 @@ module adder16 (
     input alufn[5],
     output out[16]
   ) {
-
+  
   always {
     out = 0;
     
     case(alufn){
       Func.ADD:
         out = a + b;      //add logic
-        
+      
       Func.SUB:
         out = a - b;      //subtract logic
-        
       
-      }
+      Func.OVFL:
+        out = ( ~(a[15] + b[15]) & a[15] & b[15]) || (~a[15] & ~b[15] & (a[15] + b[15])  );// Checks for overflow. Formula = ~a & ~b & (a + b) | a & B & ~(a+b)
+      
+      
+    }
   }
 }

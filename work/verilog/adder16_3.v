@@ -23,6 +23,9 @@ module adder16_3 (
       5'h11: begin
         out = a - b;
       end
+      5'h00: begin
+        out = (~(a[15+0-:1] + b[15+0-:1]) & a[15+0-:1] & b[15+0-:1]) || (~a[15+0-:1] & ~b[15+0-:1] & (a[15+0-:1] + b[15+0-:1]));
+      end
     endcase
   end
 endmodule

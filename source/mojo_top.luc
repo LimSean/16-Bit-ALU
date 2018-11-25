@@ -2,6 +2,7 @@
 //1) all functions are listed here with the corresponding 5bit value. 
 //2) The most significant bit is used to indicated whether ALUFN signals are "ON" or "OFF"
 global Func{
+  const OVFL  = 5b00000;      //checks overflow
   const ADD   = 5b10000;      // a + b
   const SUB   = 5b10001;      // a - b
   const AND   = 5b10010;      // Returns AND Logic
@@ -327,28 +328,28 @@ module mojo_top (
     
     //<=========BUTTONS TO ENTER WHICH AUTO CHECK================>
     //up
-    if (io_button[0]){
+    if (io_button[0] == 16hXXX1){
       count.d = 0;
       auto.d = auto.ARITHMETIC;
     }
     //down
-    if(io_button[2]){
+    if(io_button[2] == 16hXXX1){
       count.d = 0;
       auto.d = auto.COMPARE;
     }
     //left
-    if(io_button[3]){
+    if(io_button[3] == 16hXXXX){
       count.d = 0;
       auto.d = auto.BOOLEAN;
     }
     //right
-    if(io_button[4]){
+    if(io_button[4] == 16hXXX2){
       count.d = 0;
       auto.d = auto.SHIFT;
     }
     
     //centre
-    if(io_button[1]){ //scrambles stored a and b value
+    if(io_button[1] == 16hXXX1){ //scrambles stored a and b value
       a.d = ~(a.q - b.q) ;
       b.d = ~b.q - 1 ;
     }

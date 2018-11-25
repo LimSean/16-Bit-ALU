@@ -46,7 +46,8 @@ module functionCombi (
         out = adder.out;
       Func.SUB:
         out = adder.out;
-        
+      Func.OVFL:
+        out = adder.out;
     //Boolean
       Func.AND:
         out = bool.out;      

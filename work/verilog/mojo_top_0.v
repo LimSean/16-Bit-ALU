@@ -30,8 +30,6 @@ module mojo_top_0 (
   
   reg [15:0] value;
   
-  reg [4:0] alufn;
-  
   integer on;
   
   integer off;
@@ -110,7 +108,6 @@ module mojo_top_0 (
     io_sel = 4'hf;
     value[0+7-:8] = io_dip[0+7-:8];
     value[8+7-:8] = io_dip[8+7-:8];
-    alufn = io_dip[16+0+4-:5];
     on = 8'hff;
     off = 8'h00;
     M_combine_a = M_a_q;
@@ -325,23 +322,23 @@ module mojo_top_0 (
         end
       end
     endcase
-    if (io_button[0+0-:1]) begin
+    if (io_button[0+0-:1] == 16'bxxxxxxxxxxxx0001) begin
       M_count_d = 1'h0;
       M_auto_d = ARITHMETIC_auto;
     end
-    if (io_button[2+0-:1]) begin
+    if (io_button[2+0-:1] == 16'bxxxxxxxxxxxx0001) begin
       M_count_d = 1'h0;
       M_auto_d = COMPARE_auto;
     end
-    if (io_button[3+0-:1]) begin
+    if (io_button[3+0-:1] == 16'bxxxxxxxxxxxxxxxx) begin
       M_count_d = 1'h0;
       M_auto_d = BOOLEAN_auto;
     end
-    if (io_button[4+0-:1]) begin
+    if (io_button[4+0-:1] == 16'bxxxxxxxxxxxx0010) begin
       M_count_d = 1'h0;
       M_auto_d = SHIFT_auto;
     end
-    if (io_button[1+0-:1]) begin
+    if (io_button[1+0-:1] == 16'bxxxxxxxxxxxx0001) begin
       M_a_d = ~(M_a_q - M_b_q);
       M_b_d = ~M_b_q - 1'h1;
     end
@@ -352,33 +349,6 @@ module mojo_top_0 (
       M_erra_q <= 1'h0;
     end else begin
       M_erra_q <= M_erra_d;
-    end
-  end
-  
-  
-  always @(posedge clk) begin
-    if (rst == 1'b1) begin
-      M_auto_q <= 1'h0;
-    end else begin
-      M_auto_q <= M_auto_d;
-    end
-  end
-  
-  
-  always @(posedge clk) begin
-    if (rst == 1'b1) begin
-      M_a_q <= 1'h0;
-    end else begin
-      M_a_q <= M_a_d;
-    end
-  end
-  
-  
-  always @(posedge clk) begin
-    if (rst == 1'b1) begin
-      M_b_q <= 1'h0;
-    end else begin
-      M_b_q <= M_b_d;
     end
   end
   
@@ -397,6 +367,33 @@ module mojo_top_0 (
       M_errb_q <= 1'h0;
     end else begin
       M_errb_q <= M_errb_d;
+    end
+  end
+  
+  
+  always @(posedge clk) begin
+    if (rst == 1'b1) begin
+      M_b_q <= 1'h0;
+    end else begin
+      M_b_q <= M_b_d;
+    end
+  end
+  
+  
+  always @(posedge clk) begin
+    if (rst == 1'b1) begin
+      M_auto_q <= 1'h0;
+    end else begin
+      M_auto_q <= M_auto_d;
+    end
+  end
+  
+  
+  always @(posedge clk) begin
+    if (rst == 1'b1) begin
+      M_a_q <= 1'h0;
+    end else begin
+      M_a_q <= M_a_d;
     end
   end
   
